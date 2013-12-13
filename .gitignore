@@ -1,36 +1,37 @@
-*.py[cod]
-
-# C extensions
-*.so
-
-# Packages
-*.egg
-*.egg-info
-dist
-build
-eggs
-parts
-bin
-var
-sdist
-develop-eggs
-.installed.cfg
-lib
-lib64
-__pycache__
-
-# Installer logs
-pip-log.txt
-
-# Unit test / coverage reports
-.coverage
-.tox
-nosetests.xml
-
-# Translations
-*.mo
-
-# Mr Developer
-.mr.developer.cfg
-.project
-.pydevproject
+*.tar.bz2
+*.tar.gz
+*.7z
+*.pyc
+*.zip
+*.exe
+*.po~
+*.gcode
+darwin-Cura-*
+win32-Cura-*
+linux-Cura-*
+package.bk.sh
+package.sh
+Cura-13.11-linux
+update_translations.sh
+requirements_darwin.txt
+Printrun
+.idea
+.DS_Store
+Cura/current_profile.ini
+Cura/preferences.ini
+Cura/mru_filelist.ini
+cura.sh
+pypy
+python
+printrun.bat
+cura.bat
+object-mirror.png
+object.png
+*darwin.dmg
+scripts/darwin/dist/*
+scripts/darwin/build/*
+scripts/darwin/Cura.dmg.sparseimage
+scripts/win32/dist/*
+log.txt
+output.txt
+*.bak

@@ -27,8 +27,6 @@ class mainWindow(wx.Frame):
 	def __init__(self):
 		super(mainWindow, self).__init__(None, title='Cura - ' + version.getVersion())
 
-		self.extruderCount = int(profile.getMachineSetting('extruder_amount'))
-
 		wx.EVT_CLOSE(self, self.OnClose)
 
 		# allow dropping any file, restrict later
@@ -62,7 +60,7 @@ class mainWindow(wx.Frame):
 
 		self.fileMenu.AppendSeparator()
 		i = self.fileMenu.Append(-1, _("Print...\tCTRL+P"))
-		self.Bind(wx.EVT_MENU, lambda e: self.scene.showPrintrun()	 , i)
+		self.Bind(wx.EVT_MENU, lambda e: self.scene.showPrintWindow(), i)
 		i = self.fileMenu.Append(-1, _("Save GCode..."))
 		self.Bind(wx.EVT_MENU, lambda e: self.scene.showSaveGCode(), i)
 		i = self.fileMenu.Append(-1, _("Show slice engine log..."))
@@ -142,17 +140,16 @@ class mainWindow(wx.Frame):
 		self.Bind(wx.EVT_MENU, self.OnNormalSwitch, i)
 		expertMenu.AppendSeparator()
 
-		i = expertMenu.Append(-1, _("Open expert settings..."))
+		i = expertMenu.Append(-1, _("Open expert settings...\tCTRL+E"))
 		self.normalModeOnlyItems.append(i)
 		self.Bind(wx.EVT_MENU, self.OnExpertOpen, i)
 		expertMenu.AppendSeparator()
 		i = expertMenu.Append(-1, _("Run first run wizard..."))
 		self.Bind(wx.EVT_MENU, self.OnFirstRunWizard, i)
-		i = expertMenu.Append(-1, _("Run bed leveling wizard..."))
-		self.Bind(wx.EVT_MENU, self.OnBedLevelWizard, i)
-		if self.extruderCount > 1:
-			i = expertMenu.Append(-1, _("Run head offset wizard..."))
-			self.Bind(wx.EVT_MENU, self.OnHeadOffsetWizard, i)
+		self.bedLevelWizardMenuItem = expertMenu.Append(-1, _("Run bed leveling wizard..."))
+		self.Bind(wx.EVT_MENU, self.OnBedLevelWizard, self.bedLevelWizardMenuItem)
+		self.headOffsetWizardMenuItem = expertMenu.Append(-1, _("Run head offset wizard..."))
+		self.Bind(wx.EVT_MENU, self.OnHeadOffsetWizard, self.headOffsetWizardMenuItem)
 
 		self.menubar.Append(expertMenu, _("Expert"))
 
@@ -254,7 +251,8 @@ class mainWindow(wx.Frame):
 		profileString = ""
 		try:
 			if not wx.TheClipboard.IsOpened():
-				wx.TheClipboard.Open()
+				if not wx.TheClipboard.Open():
+					return
 				do = wx.TextDataObject()
 				if wx.TheClipboard.GetData(do):
 					profileString = do.GetText()
@@ -305,18 +303,25 @@ class mainWindow(wx.Frame):
 			# Enabled sash
 			self.splitter.SetSashSize(4)
 		self.defaultFirmwareInstallMenuItem.Enable(firmwareInstall.getDefaultFirmware() is not None)
+		if profile.getMachineSetting('machine_type') == 'Sawers3D':
+			self.bedLevelWizardMenuItem.Enable(False)
+			self.headOffsetWizardMenuItem.Enable(False)
+		if int(profile.getMachineSetting('extruder_amount')) < 2:
+			self.headOffsetWizardMenuItem.Enable(False)
 		self.scene.updateProfileToControls()
 
 	def OnPreferences(self, e):
 		prefDialog = preferencesDialog.preferencesDialog(self)
 		prefDialog.Centre()
 		prefDialog.Show()
+		prefDialog.Raise()
 		wx.CallAfter(prefDialog.Show)
 
 	def OnMachineSettings(self, e):
 		prefDialog = preferencesDialog.machineSettingsDialog(self)
 		prefDialog.Centre()
 		prefDialog.Show()
+		prefDialog.Raise()
 
 	def OnDropFiles(self, files):
 		if len(files) > 0:
@@ -526,7 +531,7 @@ class mainWindow(wx.Frame):
 	def OnCheckForUpdate(self, e):
 		newVersion = version.checkForNewerVersion()
 		if newVersion is not None:
-			if wx.MessageBox(_("Una nueva versi?n de Cura esta disponible, quieres descargarla?"), _("Nueva versi?n disponible"), wx.YES_NO | wx.ICON_INFORMATION) == wx.YES:
+			if wx.MessageBox(_("A new version of Cura is available, would you like to download?"), _("New version available"), wx.YES_NO | wx.ICON_INFORMATION) == wx.YES:
 				webbrowser.open(newVersion)
 		else:
 			wx.MessageBox(_("You are running the latest version of Cura!"), _("Awesome!"), wx.ICON_INFORMATION)
@@ -556,13 +561,13 @@ class mainWindow(wx.Frame):
 			profile.putPreference('window_normal_sash', self.normalSashPos)
 
 		#HACK: Set the paint function of the glCanvas to nothing so it won't keep refreshing. Which can keep wxWidgets from quiting.
-		#print "Closing down"
+		print "Closing down"
 		self.scene.OnPaint = lambda e : e
 		self.scene._slicer.cleanup()
 		self.Destroy()
 
 	def OnQuit(self, e):
-		self.Destroy()
+		self.Close()
 
 class normalSettingsPanel(configBase.configPanelBase):
 	"Main user interface window"

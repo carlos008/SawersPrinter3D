@@ -54,6 +54,7 @@ def main():
 			scene.add(m)
 		slicer.runSlicer(scene)
 		slicer.wait()
+		profile.replaceGCodeTagsFromSlicer(slicer.getGCodeFilename(), slicer)
 
 		if options.output:
 			shutil.copyfile(slicer.getGCodeFilename(), options.output)

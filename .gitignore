@@ -9,11 +9,6 @@
 darwin-Cura-*
 win32-Cura-*
 linux-Cura-*
-package.bk.sh
-package.sh
-Cura-13.11-linux
-update_translations.sh
-requirements_darwin.txt
 Printrun
 .idea
 .DS_Store

@@ -218,17 +218,17 @@ class InfoPage(wx.wizard.WizardPageSimple):
 class FirstInfoPage(InfoPage):
 	def __init__(self, parent, addNew):
 		if addNew:
-			super(FirstInfoPage, self).__init__(parent, _("Anadir asistente para nueva maquina"))
+			super(FirstInfoPage, self).__init__(parent, _("Add new machine wizard"))
 		else:
-			super(FirstInfoPage, self).__init__(parent, _("Asistente inicial!"))
-			self.AddText(_("Bienvenido, y gracias por usar Cura!"))
+			super(FirstInfoPage, self).__init__(parent, _("First time run wizard"))
+			self.AddText(_("Welcome, and thanks for trying Cura!"))
 			self.AddSeperator()
-		self.AddText(_("Este asistente te ayudara con los siguientes pasos:"))
+		self.AddText(_("This wizard will help you in setting up Cura for your machine."))
 		# self.AddText(_("This wizard will help you with the following steps:"))
-		# self.AddText(_("* Configura Cura para tu m?quina))
-		# self.AddText(_("* Opcionalmente actualiza tu firmware"))
-		# self.AddText(_("* Opcionalmente m?rcalo si tu m?quina trabaja bien"))
-		# self.AddText(_("* Opcionalmente nivela tu cama de trabajo"))
+		# self.AddText(_("* Configure Cura for your machine"))
+		# self.AddText(_("* Optionally upgrade your firmware"))
+		# self.AddText(_("* Optionally check if your machine is working safely"))
+		# self.AddText(_("* Optionally level your printer bed"))
 
 		#self.AddText('* Calibrate your machine')
 		#self.AddText('* Do your first print')
@@ -280,12 +280,12 @@ class CustomRepRapInfoPage(InfoPage):
 		self.AddText(_("You will have to manually install Marlin or Sprinter firmware."))
 		self.AddSeperator()
 		self.machineName = self.AddLabelTextCtrl(_("Machine name"), "RepRap")
-		self.machineWidth = self.AddLabelTextCtrl(_("Machine width (mm)"), "150")
-		self.machineDepth = self.AddLabelTextCtrl(_("Machine depth (mm)"), "150")
-		self.machineHeight = self.AddLabelTextCtrl(_("Machine height (mm)"), "150")
-		self.nozzleSize = self.AddLabelTextCtrl(_("Nozzle size (mm)"), "0.4")
-		#self.heatedBed = self.AddCheckbox(_("Heated bed"))
-		#self.HomeAtCenter = self.AddCheckbox(_("Bed center is 0,0,0 (RoStock)"))
+		self.machineWidth = self.AddLabelTextCtrl(_("Machine width (mm)"), "80")
+		self.machineDepth = self.AddLabelTextCtrl(_("Machine depth (mm)"), "80")
+		self.machineHeight = self.AddLabelTextCtrl(_("Machine height (mm)"), "60")
+		self.nozzleSize = self.AddLabelTextCtrl(_("Nozzle size (mm)"), "0.5")
+		self.heatedBed = self.AddCheckbox(_("Heated bed"))
+		self.HomeAtCenter = self.AddCheckbox(_("Bed center is 0,0,0 (RoStock)"))
 
 	def StoreData(self):
 		profile.putMachineSetting('machine_name', self.machineName.GetValue())
@@ -305,22 +305,22 @@ class CustomRepRapInfoPage(InfoPage):
 
 class MachineSelectPage(InfoPage):
 	def __init__(self, parent):
-		super(MachineSelectPage, self).__init__(parent, _("Selecciona tu maquina"))
-		self.AddText(_("Que tipo de maquina tienes?:"))
-
+		super(MachineSelectPage, self).__init__(parent, _("Select your machine"))
+		self.AddText(_("What kind of machine do you have:"))
+		###  -- Ultimaker2 por Sawers3D ---- ###
 		self.Ultimaker2Radio = self.AddRadioButton("Sawers3D", style=wx.RB_GROUP)
 		self.Ultimaker2Radio.SetValue(True)
 		self.Ultimaker2Radio.Bind(wx.EVT_RADIOBUTTON, self.OnUltimaker2Select)
-		self.UltimakerRadio = self.AddRadioButton("Ultimaker")
+		self.UltimakerRadio = self.AddRadioButton("Ultimaker Original")
 		self.UltimakerRadio.Bind(wx.EVT_RADIOBUTTON, self.OnUltimakerSelect)
-		self.OtherRadio = self.AddRadioButton(_("Otros (Ex: RepRap, MakerBot)"))
+		self.OtherRadio = self.AddRadioButton(_("Other (Ex: RepRap, MakerBot)"))
 		self.OtherRadio.Bind(wx.EVT_RADIOBUTTON, self.OnOtherSelect)
 		self.AddSeperator()
-		self.AddText(_("La recopilacion de informacion de uso anonimo ayuda a la mejora continua de Cura."))
-		self.AddText(_("Esto no presenta sus modelos en linea ni se reune toda la informacion relacionada con la privacidad."))
-		self.SubmitUserStats = self.AddCheckbox(_("Enviar informacion de uso anonimo:"))
-		#self.AddText(_("For full details see: http://wiki.ultimaker.com/Cura:stats"))
-		self.SubmitUserStats.SetValue(False)
+		self.AddText(_("The collection of anonymous usage information helps with the continued improvement of Cura."))
+		self.AddText(_("This does NOT submit your models online nor gathers any privacy related information."))
+		self.SubmitUserStats = self.AddCheckbox(_("Submit anonymous usage information:"))
+		self.AddText(_("For full details see: http://wiki.ultimaker.com/Cura:stats"))
+		self.SubmitUserStats.SetValue(True)
 
 	def OnUltimaker2Select(self, e):
 		wx.wizard.WizardPageSimple.Chain(self, self.GetParent().ultimaker2ReadyPage)
@@ -337,6 +337,7 @@ class MachineSelectPage(InfoPage):
 
 	def StoreData(self):
 		profile.putProfileSetting('retraction_enable', 'True')
+		#### ----  Modificando datos de impresora Ultimaker2---
 		if self.Ultimaker2Radio.GetValue():
 			profile.putMachineSetting('machine_width', '150')
 			profile.putMachineSetting('machine_depth', '150')
@@ -344,22 +345,24 @@ class MachineSelectPage(InfoPage):
 			profile.putMachineSetting('machine_name', 'Sawers3D')
 			profile.putMachineSetting('machine_type', 'Sawers3D')
 			profile.putMachineSetting('machine_center_is_zero', 'False')
-			profile.putMachineSetting('has_heated_bed', 'False')
-			profile.putMachineSetting('gcode_flavor', 'RepRap (Marlin/Sprinter)')
-			profile.putMachineSetting('extruder_head_size_min_x', '40.0')
+			profile.putMachineSetting('has_heated_bed', 'True')
+			#####   UltiGCode port ''  ----####
+			profile.putMachineSetting('gcode_flavor', '')
+			profile.putPreference('startMode', 'Simple')
+			profile.putMachineSetting('extruder_head_size_min_x', '10.0')
 			profile.putMachineSetting('extruder_head_size_min_y', '10.0')
-			profile.putMachineSetting('extruder_head_size_max_x', '60.0')
-			profile.putMachineSetting('extruder_head_size_max_y', '30.0')
-			profile.putMachineSetting('extruder_head_size_height', '55.0')
+			profile.putMachineSetting('extruder_head_size_max_x', '10.0')
+			profile.putMachineSetting('extruder_head_size_max_y', '10.0')
+			profile.putMachineSetting('extruder_head_size_height', '10.0')
 			profile.putProfileSetting('nozzle_size', '0.4')
 			profile.putProfileSetting('fan_full_height', '5.0')
-			profile.putMachineSetting('extruder_offset_x1', '18.0')
+			profile.putMachineSetting('extruder_offset_x1', '0.0')
 			profile.putMachineSetting('extruder_offset_y1', '0.0')
 		elif self.UltimakerRadio.GetValue():
 			profile.putMachineSetting('machine_width', '205')
 			profile.putMachineSetting('machine_depth', '205')
 			profile.putMachineSetting('machine_height', '200')
-			profile.putMachineSetting('machine_name', 'ultimaker')
+			profile.putMachineSetting('machine_name', 'ultimaker original')
 			profile.putMachineSetting('machine_type', 'ultimaker')
 			profile.putMachineSetting('machine_center_is_zero', 'False')
 			profile.putMachineSetting('gcode_flavor', 'RepRap (Marlin/Sprinter)')
@@ -726,7 +729,9 @@ class UltimakerCalibrateStepsPerEPage(InfoPage):
 		self.lengthInput.SetValue("100")
 
 	def OnExtrudeClick(self, e):
-		threading.Thread(target=self.OnExtrudeRun).start()
+		t = threading.Thread(target=self.OnExtrudeRun)
+		t.daemon = True
+		t.start()
 
 	def OnExtrudeRun(self):
 		self.heatButton.Enable(False)
@@ -759,7 +764,9 @@ class UltimakerCalibrateStepsPerEPage(InfoPage):
 		self.heatButton.Enable()
 
 	def OnHeatClick(self, e):
-		threading.Thread(target=self.OnHeatRun).start()
+		t = threading.Thread(target=self.OnHeatRun)
+		t.daemon = True
+		t.start()
 
 	def OnHeatRun(self):
 		self.heatButton.Enable(False)
@@ -808,8 +815,8 @@ class UltimakerCalibrateStepsPerEPage(InfoPage):
 class Ultimaker2ReadyPage(InfoPage):
 	def __init__(self, parent):
 		super(Ultimaker2ReadyPage, self).__init__(parent, "Sawers3D")
-		self.AddText('Felicidades por la compra de su nueva marca Sawers3D.')
-		self.AddText('Cura ya est? listo para ser usado con su Sawers3D.')
+		self.AddText('Congratulations on your the purchase of your brand new Sawers3D.')
+		self.AddText('Cura is now ready to be used with your Sawers3D.')
 		self.AddSeperator()
 
 class configWizard(wx.wizard.Wizard):

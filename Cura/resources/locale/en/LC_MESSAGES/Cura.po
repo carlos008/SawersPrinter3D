@@ -585,7 +585,7 @@ msgstr "Abre tu página YouMagine"
 
 #: Cura/gui/mainWindow.py:168
 msgid "About Cura..."
-msgstr "Sobre Cura"
+msgstr "Sobra Cura"
 
 #: Cura/gui/mainWindow.py:170
 msgid "Help"

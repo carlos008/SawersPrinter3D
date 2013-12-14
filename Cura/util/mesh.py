@@ -8,6 +8,8 @@ import os
 import numpy
 numpy.seterr(all='ignore')
 
+from Cura.util import polygon
+
 class printableObject(object):
 	def __init__(self, originFilename):
 		self._originFilename = originFilename
@@ -25,6 +27,12 @@ class printableObject(object):
 		self._transformedSize = None
 		self._boundaryCircleSize = None
 		self._drawOffset = None
+		self._boundaryHull = None
+		self._printAreaExtend = numpy.array([[-1,-1],[ 1,-1],[ 1, 1],[-1, 1]], numpy.float32)
+		self._headAreaExtend = numpy.array([[-1,-1],[ 1,-1],[ 1, 1],[-1, 1]], numpy.float32)
+		self._printAreaHull = None
+		self._headAreaHull = None
+
 		self._loadAnim = None
 
 	def copy(self):
@@ -34,6 +42,9 @@ class printableObject(object):
 		ret._transformedMax = self._transformedMax.copy()
 		ret._transformedSize = self._transformedSize.copy()
 		ret._boundaryCircleSize = self._boundaryCircleSize
+		ret._boundaryHull = self._boundaryHull.copy()
+		ret._printAreaExtend = self._printAreaExtend.copy()
+		ret._printAreaHull = self._printAreaHull.copy()
 		ret._drawOffset = self._drawOffset.copy()
 		for m in self._meshList[:]:
 			m2 = ret._addMesh()
@@ -70,8 +81,10 @@ class printableObject(object):
 		self._transformedMax = numpy.array([-999999999999,-999999999999,-999999999999], numpy.float64)
 		self._boundaryCircleSize = 0
 
+		hull = numpy.zeros((0, 2), numpy.int)
 		for m in self._meshList:
 			transformedVertexes = m.getTransformedVertexes()
+			hull = polygon.convexHull(numpy.concatenate((numpy.rint(transformedVertexes[:,0:2]).astype(int), hull), 0))
 			transformedMin = transformedVertexes.min(0)
 			transformedMax = transformedVertexes.max(0)
 			for n in xrange(0, 3):
@@ -88,6 +101,10 @@ class printableObject(object):
 		self._drawOffset[2] = self._transformedMin[2]
 		self._transformedMax -= self._drawOffset
 		self._transformedMin -= self._drawOffset
+
+		self._boundaryHull = polygon.minkowskiHull((hull.astype(numpy.float32) - self._drawOffset[0:2]), numpy.array([[-1,-1],[-1,1],[1,1],[1,-1]],numpy.float32))
+		self._printAreaHull = polygon.minkowskiHull(self._boundaryHull, self._printAreaExtend)
+		self._headAreaHull = polygon.minkowskiHull(self._printAreaHull, self._headAreaExtend)
 
 	def getName(self):
 		return self._name
@@ -110,6 +127,15 @@ class printableObject(object):
 		return self._drawOffset
 	def getBoundaryCircle(self):
 		return self._boundaryCircleSize
+
+	def setPrintAreaExtends(self, poly):
+		self._printAreaExtend = poly
+		self._printAreaHull = polygon.minkowskiHull(self._boundaryHull, self._printAreaExtend)
+		self._headAreaHull = polygon.minkowskiHull(self._printAreaHull, self._headAreaExtend)
+
+	def setHeadArea(self, poly):
+		self._headAreaExtend = poly
+		self._headAreaHull = polygon.minkowskiHull(self._printAreaHull, self._headAreaExtend)
 
 	def mirror(self, axis):
 		matrix = [[1,0,0], [0, 1, 0], [0, 0, 1]]

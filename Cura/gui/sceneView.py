@@ -16,6 +16,7 @@ from OpenGL.GLU import *
 from OpenGL.GL import *
 
 from Cura.gui import printWindow
+from Cura.gui import printWindow2
 from Cura.util import profile
 from Cura.util import meshLoader
 from Cura.util import objectScene
@@ -24,12 +25,12 @@ from Cura.util import sliceEngine
 from Cura.util import machineCom
 from Cura.util import removableStorage
 from Cura.util import gcodeInterpreter
+from Cura.util.printerConnection import printerConnectionManager
 from Cura.gui.util import previewTools
 from Cura.gui.util import opengl
 from Cura.gui.util import openglGui
 from Cura.gui.tools import youmagineGui
 from Cura.gui.tools import imageToMesh
-from Cura.Printrun import Dialogo
 
 class SceneView(openglGui.glGuiPanel):
 	def __init__(self, parent):
@@ -57,6 +58,7 @@ class SceneView(openglGui.glGuiPanel):
 		self._platformMesh = {}
 		self._isSimpleMode = True
 		self._usbPrintMonitor = printWindow.printProcessMonitor(lambda : self._queueRefresh())
+		self._printerConnectionManager = printerConnectionManager.PrinterConnectionManager()
 
 		self._viewport = None
 		self._modelMatrix = None
@@ -223,10 +225,10 @@ class SceneView(openglGui.glGuiPanel):
 
 	def OnPrintButton(self, button):
 		if button == 1:
+			connectionEntry = self._printerConnectionManager.getAvailableConnection()
 			if machineCom.machineIsConnected():
 				self.showPrintWindow()
-			# esta parte se encarga de guardar el archivo al disco
-			elif len(removableStorage.getPossibleSDcardDrives()) > 0:
+			elif len(removableStorage.getPossibleSDcardDrives()) > 0 and (connectionEntry is None or connectionEntry.priority < 0):
 				drives = removableStorage.getPossibleSDcardDrives()
 				if len(drives) > 1:
 					dlg = wx.SingleChoiceDialog(self, "Select SD drive", "Multiple removable drives have been found,\nplease select your SD card drive", map(lambda n: n[0], drives))
@@ -239,24 +241,32 @@ class SceneView(openglGui.glGuiPanel):
 					drive = drives[0]
 				filename = self._scene._objectList[0].getName() + '.gcode'
 				threading.Thread(target=self._copyFile,args=(self._gcodeFilename, drive[1] + filename, drive[1])).start()
+			elif connectionEntry is not None:
+				connection = connectionEntry.connection
+				if connectionEntry.window is None or not connectionEntry.window:
+					connectionEntry.window = printWindow2.printWindow(connection)
+				connectionEntry.window.Show()
+				connectionEntry.window.Raise()
+				if not connection.loadFile(self._gcodeFilename):
+					if connection.isPrinting():
+						self.notification.message("Cannot start print, because other print still running.")
+					else:
+						self.notification.message("Failed to start print...")
 			else:
 				self.showSaveGCode()
 		if button == 3:
-			pass
 			menu = wx.Menu()
-			self.Bind(wx.EVT_MENU, lambda e: self.showPrintWindow() , menu.Append(-1, _("Print with USB")))
-			### agregando Printrun al evento de imprimir
-			#self.Bind(wx.EVT_MENU, lambda e: self.showPrintrun() , menu.Append(-1, _("Print with USB")))
+			self.Bind(wx.EVT_MENU, lambda e: self.showPrintWindow(), menu.Append(-1, _("Print with USB")))
 			self.Bind(wx.EVT_MENU, lambda e: self.showSaveGCode(), menu.Append(-1, _("Save GCode...")))
 			self.Bind(wx.EVT_MENU, lambda e: self._showSliceLog(), menu.Append(-1, _("Slice engine log...")))
 			self.PopupMenu(menu)
 			menu.Destroy()
 
-	def showPrintrun(self):
-		Dialogo.main()
-
-  	def showPrintWindow(self):
+	def showPrintWindow(self):
 		if self._gcodeFilename is None:
+			return
+		if profile.getMachineSetting('gcode_flavor') == 'UltiGCode':
+			wx.MessageBox(_("USB printing on the Ultimaker2 is not supported."), _("USB Printing Error"), wx.OK | wx.ICON_WARNING)
 			return
 		self._usbPrintMonitor.loadFile(self._gcodeFilename, self._slicer.getID())
 		if self._gcodeFilename == self._slicer.getGCodeFilename():
@@ -383,7 +393,20 @@ class SceneView(openglGui.glGuiPanel):
 	def OnScaleMax(self, button):
 		if self._selectedObj is None:
 			return
-		self._selectedObj.scaleUpTo(self._machineSize - numpy.array(profile.calculateObjectSizeOffsets() + [0.0], numpy.float32) * 2 - numpy.array([1,1,1], numpy.float32))
+		machine = profile.getMachineSetting('machine_type')
+		self._selectedObj.setPosition(numpy.array([0.0, 0.0]))
+		self._scene.pushFree()
+		#self.sceneUpdated()
+		if machine == "Sawers3D":
+			#This is bad and Jaime should feel bad!
+			self._selectedObj.setPosition(numpy.array([0.0,-10.0]))
+			self._selectedObj.scaleUpTo(self._machineSize - numpy.array(profile.calculateObjectSizeOffsets() + [0.0], numpy.float32) * 2 - numpy.array([1,1,1], numpy.float32))
+			self._selectedObj.setPosition(numpy.array([0.0,0.0]))
+			self._scene.pushFree()
+		else:
+			self._selectedObj.setPosition(numpy.array([0.0, 0.0]))
+			self._scene.pushFree()
+			self._selectedObj.scaleUpTo(self._machineSize - numpy.array(profile.calculateObjectSizeOffsets() + [0.0], numpy.float32) * 2 - numpy.array([1,1,1], numpy.float32))
 		self._scene.pushFree()
 		self._selectObject(self._selectedObj)
 		self.updateProfileToControls()
@@ -487,7 +510,7 @@ class SceneView(openglGui.glGuiPanel):
 	def sceneUpdated(self):
 		self._sceneUpdateTimer.Start(500, True)
 		self._slicer.abortSlicer()
-		self._scene.setSizeOffsets(numpy.array(profile.calculateObjectSizeOffsets(), numpy.float32))
+		self._scene.updateSizeOffsets()
 		self.QueueRefresh()
 
 	def _onRunSlicer(self, e):
@@ -608,7 +631,6 @@ class SceneView(openglGui.glGuiPanel):
 		self._objColors[2] = profile.getPreferenceColour('model_colour3')
 		self._objColors[3] = profile.getPreferenceColour('model_colour4')
 		self._scene.setMachineSize(self._machineSize)
-		self._scene.setSizeOffsets(numpy.array(profile.calculateObjectSizeOffsets(), numpy.float32))
 		self._scene.setHeadSize(profile.getMachineSettingFloat('extruder_head_size_min_x'), profile.getMachineSettingFloat('extruder_head_size_max_x'), profile.getMachineSettingFloat('extruder_head_size_min_y'), profile.getMachineSettingFloat('extruder_head_size_max_y'), profile.getMachineSettingFloat('extruder_head_size_height'))
 
 		if self._selectedObj is not None:
@@ -822,12 +844,16 @@ class SceneView(openglGui.glGuiPanel):
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)
 
 	def OnPaint(self,e):
+		connectionEntry = self._printerConnectionManager.getAvailableConnection()
 		if machineCom.machineIsConnected():
 			self.printButton._imageID = 6
-			self.printButton._tooltip = _("Imprimir")
-		elif len(removableStorage.getPossibleSDcardDrives()) > 0:
+			self.printButton._tooltip = _("Print")
+		elif len(removableStorage.getPossibleSDcardDrives()) > 0 and (connectionEntry is None or connectionEntry.priority < 0):
 			self.printButton._imageID = 2
-			self.printButton._tooltip = _("Guardar a SD")
+			self.printButton._tooltip = _("Toolpath to SD")
+		elif connectionEntry is not None:
+			self.printButton._imageID = connectionEntry.icon
+			self.printButton._tooltip = _("Print with %s") % (connectionEntry.name)
 		else:
 			self.printButton._imageID = 3
 			self.printButton._tooltip = _("Save toolpath")
@@ -1141,19 +1167,31 @@ void main(void)
 				glPopMatrix()
 		else:
 			#Draw the object box-shadow, so you can see where it will collide with other objects.
-			if self._selectedObj is not None and len(self._scene.objects()) > 1:
-				size = self._selectedObj.getSize()[0:2] / 2 + self._scene.getObjectExtend()
-				glPushMatrix()
-				glTranslatef(self._selectedObj.getPosition()[0], self._selectedObj.getPosition()[1], 0)
+			if self._selectedObj is not None:
 				glEnable(GL_BLEND)
 				glEnable(GL_CULL_FACE)
-				glColor4f(0,0,0,0.12)
-				glBegin(GL_QUADS)
-				glVertex3f(-size[0],  size[1], 0.1)
-				glVertex3f(-size[0], -size[1], 0.1)
-				glVertex3f( size[0], -size[1], 0.1)
-				glVertex3f( size[0],  size[1], 0.1)
+				glColor4f(0,0,0,0.16)
+				glDepthMask(False)
+				for obj in self._scene.objects():
+					glPushMatrix()
+					glTranslatef(obj.getPosition()[0], obj.getPosition()[1], 0)
+					glBegin(GL_TRIANGLE_FAN)
+					for p in obj._boundaryHull[::-1]:
+						glVertex3f(p[0], p[1], 0)
+					glEnd()
+					glPopMatrix()
+				glPushMatrix()
+				glColor4f(0,0,0,0.06)
+				glTranslatef(self._selectedObj.getPosition()[0], self._selectedObj.getPosition()[1], 0)
+				glBegin(GL_TRIANGLE_FAN)
+				for p in self._selectedObj._printAreaHull[::-1]:
+					glVertex3f(p[0], p[1], 0)
 				glEnd()
+				glBegin(GL_TRIANGLE_FAN)
+				for p in self._selectedObj._headAreaHull[::-1]:
+					glVertex3f(p[0], p[1], 0)
+				glEnd()
+				glDepthMask(True)
 				glDisable(GL_CULL_FACE)
 				glPopMatrix()
 
@@ -1225,7 +1263,8 @@ void main(void)
 		size = [profile.getMachineSettingFloat('machine_width'), profile.getMachineSettingFloat('machine_depth'), profile.getMachineSettingFloat('machine_height')]
 
 		machine = profile.getMachineSetting('machine_type')
-		if profile.getMachineSetting('machine_type').startswith('ultimaker'):
+		##-- Cambiando ultimake a Sawers3D --##
+		if profile.getMachineSetting('machine_type').startswith('Sawers3D'):
 			if machine not in self._platformMesh:
 				meshes = meshLoader.loadMeshes(resources.getPathForMesh(machine + '_platform.stl'))
 				if len(meshes) > 0:
@@ -1233,9 +1272,10 @@ void main(void)
 				else:
 					self._platformMesh[machine] = None
 				if machine == 'Sawers3D':
-					self._platformMesh[machine]._drawOffset = numpy.array([0,-37,145], numpy.float32)
+					self._platformMesh[machine]._drawOffset = numpy.array([8 , -5 , 2.5], numpy.float32)
 				else:
-					self._platformMesh[machine]._drawOffset = numpy.array([0,0,2.5], numpy.float32)
+					##-- cambiando valores para centrar la cama al area de impresion --##
+					self._platformMesh[machine]._drawOffset = numpy.array([ 8 , -5 , 2.5], numpy.float32)
 			glColor4f(1,1,1,0.5)
 			self._objectShader.bind()
 			self._renderObject(self._platformMesh[machine], False, False)
@@ -1244,16 +1284,16 @@ void main(void)
 			#For the Ultimaker 2 render the texture on the back plate to show the Ultimaker2 text.
 			if machine == 'Sawers3D':
 				if not hasattr(self._platformMesh[machine], 'texture'):
-					self._platformMesh[machine].texture = opengl.loadGLTexture('Ultimaker2backplate.png')
+					self._platformMesh[machine].texture = opengl.loadGLTexture('Sawers3D.png')
 				glBindTexture(GL_TEXTURE_2D, self._platformMesh[machine].texture)
 				glEnable(GL_TEXTURE_2D)
 				glPushMatrix()
 				glColor4f(1,1,1,1)
 
-				glTranslate(0,150,-5)
+				glTranslate(-5,80,0)
 				h = 50
 				d = 8
-				w = 100
+				w = 90
 				glEnable(GL_BLEND)
 				glBlendFunc(GL_DST_COLOR, GL_ZERO)
 				glBegin(GL_QUADS)
@@ -1290,6 +1330,7 @@ void main(void)
 			glVertex3f(-size[0] / 2, -size[1] / 2+10, 0)
 			glEnd()
 
+		#Cornerpoints for big blue square
 		v0 = [ size[0] / 2, size[1] / 2, size[2]]
 		v1 = [ size[0] / 2,-size[1] / 2, size[2]]
 		v2 = [-size[0] / 2, size[1] / 2, size[2]]
@@ -1303,6 +1344,7 @@ void main(void)
 		glEnableClientState(GL_VERTEX_ARRAY)
 		glVertexPointer(3, GL_FLOAT, 3*4, vList)
 
+		glDepthMask(False)
 		glColor4ub(5, 171, 231, 64)
 		glDrawArrays(GL_QUADS, 0, 4)
 		glColor4ub(5, 171, 231, 96)
@@ -1311,6 +1353,7 @@ void main(void)
 		glDrawArrays(GL_QUADS, 12, 8)
 		glDisableClientState(GL_VERTEX_ARRAY)
 
+		#Draw checkerboard
 		sx = self._machineSize[0]
 		sy = self._machineSize[1]
 		for x in xrange(-int(sx/20)-1, int(sx / 20) + 1):
@@ -1323,17 +1366,68 @@ void main(void)
 				y1 = max(min(y1, sy/2), -sy/2)
 				x2 = max(min(x2, sx/2), -sx/2)
 				y2 = max(min(y2, sy/2), -sy/2)
+				#Black or "white"  checker
 				if (x & 1) == (y & 1):
 					glColor4ub(5, 171, 231, 127)
 				else:
 					glColor4ub(5 * 8 / 10, 171 * 8 / 10, 231 * 8 / 10, 128)
 				glBegin(GL_QUADS)
-				glVertex3f(x1, y1, -0.02)
-				glVertex3f(x2, y1, -0.02)
-				glVertex3f(x2, y2, -0.02)
-				glVertex3f(x1, y2, -0.02)
+				glVertex3f(x1, y1, 0)
+				glVertex3f(x2, y1, 0)
+				glVertex3f(x2, y2, 0)
+				glVertex3f(x1, y2, 0)
 				glEnd()
 
+		if machine == 'Sawers3D':
+			##-- Colorea esquinas de la cama --#
+			glColor4ub(127, 127, 127, 200)
+			#if UM2, draw bat-area zone for head. THe head can't stop there, because its bat-area.
+			#UpperRight
+			clipWidth = 25
+			clipHeight = 10
+			posX = sx / 2 - clipWidth
+			posY = sy / 2 - clipHeight
+			glBegin(GL_QUADS)
+			glVertex3f(posX, posY, 0)
+			glVertex3f(posX+clipWidth, posY, 0)
+			glVertex3f(posX+clipWidth, posY+clipHeight, 0)
+			glVertex3f(posX, posY+clipHeight, 0)
+			glEnd()
+			#UpperLeft
+			clipWidth = 25
+			clipHeight = 10
+			posX = -sx / 2
+			posY = sy / 2 - clipHeight
+			glBegin(GL_QUADS)
+			glVertex3f(posX, posY, 0)
+			glVertex3f(posX+clipWidth, posY, 0)
+			glVertex3f(posX+clipWidth, posY+clipHeight, 0)
+			glVertex3f(posX, posY+clipHeight, 0)
+			glEnd()
+			#LowerRight
+			clipWidth = 25
+			clipHeight = 10
+			posX = sx / 2 - clipWidth
+			posY = -sy / 2
+			glBegin(GL_QUADS)
+			glVertex3f(posX, posY, 0)
+			glVertex3f(posX+clipWidth, posY, 0)
+			glVertex3f(posX+clipWidth, posY+clipHeight, 0)
+			glVertex3f(posX, posY+clipHeight, 0)
+			glEnd()
+			#LowerLeft
+			clipWidth = 25
+			clipHeight = 10
+			posX = -sx / 2
+			posY = -sy / 2
+			glBegin(GL_QUADS)
+			glVertex3f(posX, posY, 0)
+			glVertex3f(posX+clipWidth, posY, 0)
+			glVertex3f(posX+clipWidth, posY+clipHeight, 0)
+			glVertex3f(posX, posY+clipHeight, 0)
+			glEnd()
+
+		glDepthMask(True)
 		glDisable(GL_BLEND)
 		glDisable(GL_CULL_FACE)
 

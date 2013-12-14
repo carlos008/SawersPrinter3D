@@ -33,7 +33,8 @@ def serialList(forAutoDetect=False):
 			i=0
 			while True:
 				values = _winreg.EnumValue(key, i)
-				if not forAutoDetect or 'VCP' or 'USBSER' in values[0]:
+				## ---- cambiando  USBRSER  a VCP
+				if not forAutoDetect or 'VCP' in values[0]:
 					baselist+=[values[1]]
 				i+=1
 		except:
@@ -289,7 +290,8 @@ class MachineCom(object):
 			for p in serialList(True):
 				try:
 					self._log("Connecting to: %s" % (p))
-					programmer.connect(p)
+					### -----   agregando baudrate  250000
+					programmer.connect( p , 250000 )
 					self._serial = programmer.leaveISP()
 					profile.putMachineSetting('serial_port_auto', p)
 					break
@@ -307,7 +309,8 @@ class MachineCom(object):
 			try:
 				self._log("Connecting to: %s" % (self._port))
 				if self._baudrate == 0:
-					self._serial = serial.Serial(str(self._port),  250000 , timeout=0.1, writeTimeout=10000)
+					###-- cambiando 115200 a 250000 baudrate
+					self._serial = serial.Serial(str(self._port), 250000, timeout=0.1, writeTimeout=10000)
 				else:
 					self._serial = serial.Serial(str(self._port), self._baudrate, timeout=2, writeTimeout=10000)
 			except:

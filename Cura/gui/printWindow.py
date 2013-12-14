@@ -342,9 +342,10 @@ class printWindow(wx.Frame):
 		self._thread.daemon = True
 		self._thread.start()
 
-		if webcam.hasWebcamSupport():
-			#Need to call the camera class on the GUI thread, or else it won't work. Shame as it hangs the GUI for about 2 seconds.
-			wx.CallAfter(self._webcamCheck)
+		##-- Desactivando webcam
+		#if webcam.hasWebcamSupport():
+		#	#Need to call the camera class on the GUI thread, or else it won't work. Shame as it hangs the GUI for about 2 seconds.
+			#wx.CallAfter(self._webcamCheck)
 
 	def _stdinMonitor(self):
 		while True:

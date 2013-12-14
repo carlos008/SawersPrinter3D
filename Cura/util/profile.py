@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 from __future__ import division
 __copyright__ = "Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License"
+
 import os, traceback, math, re, zlib, base64, time, sys, platform, glob, string, stat, types
 import cPickle as pickle
 if sys.version_info[0] < 3:
@@ -164,7 +165,9 @@ setting('print_bed_temperature',      70, int,   'basic',    _('Speed and Temper
 setting('support',                'None', [_('None'), _('Touching buildplate'), _('Everywhere')], 'basic', _('Support')).setLabel(_("Support type"), _("Type of support structure build.\n\"Touching buildplate\" is the most commonly used support setting.\n\nNone does not do any support.\nTouching buildplate only creates support where the support structure will touch the build platform.\nEverywhere creates support even on top of parts of the model."))
 setting('platform_adhesion',      'None', [_('None'), _('Brim'), _('Raft')], 'basic', _('Support')).setLabel(_("Platform adhesion type"), _("Different options that help in preventing corners from lifting due to warping.\nBrim adds a single layer thick flat area around your object which is easy to cut off afterwards, and the recommended option.\nRaft adds a thick raster at below the object and a thin interface between this and your object.\n(Note that enabling the brim or raft disables the skirt)"))
 setting('support_dual_extrusion',  'Both', [_('Both'), _('First extruder'), _('Second extruder')], 'basic', _('Support')).setLabel(_("Support dual extrusion"), _("Which extruder to use for support material, for break-away support you can use both extruders.\nBut if one of the materials is more expensive then the other you could select an extruder to use for support material. This causes more extruder switches.\nYou can also use the 2nd extruder for soluble support materials."))
-setting('filament_diameter',        2.85, float, 'basic',    _('Filament')).setRange(1).setLabel(_("Diameter (mm)"), _("Diameter of your filament, as accurately as possible.\nIf you cannot measure this value you will have to calibrate it, a higher number means less extrusion, a smaller number generates more extrusion."))
+setting('wipe_tower',              False, bool,  'basic',    _('Dual extrusion')).setLabel(_("Wipe&prime tower"), _("The wipe-tower is a tower printed on every layer when switching between nozzles.\nThe old nozzle is wiped off on the tower before the new nozzle is used to print the 2nd color."))
+setting('ooze_shield',             False, bool,  'basic',    _('Dual extrusion')).setLabel(_("Ooze shield"), _("The ooze shield is a 1 line thick shell around the object which stands a few mm from the object.\nThis shield catches any oozing from the unused nozzle in dual-extrusion."))
+setting('filament_diameter',        1.70, float, 'basic',    _('Filament')).setRange(1).setLabel(_("Diameter (mm)"), _("Diameter of your filament, as accurately as possible.\nIf you cannot measure this value you will have to calibrate it, a higher number means less extrusion, a smaller number generates more extrusion."))
 setting('filament_diameter2',          0, float, 'basic',    _('Filament')).setRange(0).setLabel(_("Diameter2 (mm)"), _("Diameter of your filament for the 2nd nozzle. Use 0 to use the same diameter as for nozzle 1."))
 setting('filament_diameter3',          0, float, 'basic',    _('Filament')).setRange(0).setLabel(_("Diameter3 (mm)"), _("Diameter of your filament for the 3th nozzle. Use 0 to use the same diameter as for nozzle 1."))
 setting('filament_diameter4',          0, float, 'basic',    _('Filament')).setRange(0).setLabel(_("Diameter4 (mm)"), _("Diameter of your filament for the 4th nozzle. Use 0 to use the same diameter as for nozzle 1."))
@@ -174,18 +177,18 @@ setting('retraction_amount',         4.5, float, 'advanced', _('Retraction')).se
 setting('retraction_dual_amount',   16.5, float, 'advanced', _('Retraction')).setRange(0).setLabel(_("Dual extrusion switch amount (mm)"), _("Amount of retraction when switching nozzle with dual-extrusion, set at 0 for no retraction at all. A value of 16.0mm seems to generate good results."))
 setting('retraction_min_travel',     1.5, float, 'expert',   _('Retraction')).setRange(0).setLabel(_("Minimum travel (mm)"), _("Minimum amount of travel needed for a retraction to happen at all. To make sure you do not get a lot of retractions in a small area."))
 setting('retraction_combing',       True, bool,  'expert',   _('Retraction')).setLabel(_("Enable combing"), _("Combing is the act of avoiding holes in the print for the head to travel over. If combing is disabled the printer head moves straight from the start point to the end point and it will always retract."))
-setting('retraction_minimal_extrusion',0.5, float,'expert',  _('Retraction')).setRange(0).setLabel(_("Minimal extrusion before retracting (mm)"), _("The minimal amount of extrusion that needs to be done before retracting again if a retraction needs to happen before this minimal is reached the retraction is ignored.\nThis avoids retraction a lot on the same piece of filament which flattens the filament and causes grinding issues."))
+setting('retraction_minimal_extrusion',0.1, float,'expert',  _('Retraction')).setRange(0).setLabel(_("Minimal extrusion before retracting (mm)"), _("The minimal amount of extrusion that needs to be done before retracting again if a retraction needs to happen before this minimal is reached the retraction is ignored.\nThis avoids retraction a lot on the same piece of filament which flattens the filament and causes grinding issues."))
 setting('bottom_thickness',          0.3, float, 'advanced', _('Quality')).setRange(0).setLabel(_("Initial layer thickness (mm)"), _("Layer thickness of the bottom layer. A thicker bottom layer makes sticking to the bed easier. Set to 0.0 to have the bottom layer thickness the same as the other layers."))
 setting('object_sink',               0.0, float, 'advanced', _('Quality')).setLabel(_("Cut off object bottom (mm)"), _("Sinks the object into the platform, this can be used for objects that do not have a flat bottom and thus create a too small first layer."))
 #setting('enable_skin',             False, bool,  'advanced', _('Quality')).setLabel(_("Duplicate outlines"), _("Skin prints the outer lines of the prints twice, each time with half the thickness. This gives the illusion of a higher print quality."))
-setting('overlap_dual',              0.2, float, 'advanced', _('Quality')).setLabel(_("Dual extrusion overlap (mm)"), _("Add a certain amount of overlapping extrusion on dual-extrusion prints. This bonds the different colors better together."))
+setting('overlap_dual',             0.15, float, 'advanced', _('Quality')).setLabel(_("Dual extrusion overlap (mm)"), _("Add a certain amount of overlapping extrusion on dual-extrusion prints. This bonds the different colors better together."))
 setting('travel_speed',            150.0, float, 'advanced', _('Speed')).setRange(0.1).setLabel(_("Travel speed (mm/s)"), _("Speed at which travel moves are done, a high quality build Ultimaker can reach speeds of 250mm/s. But some machines might miss steps then."))
 setting('bottom_layer_speed',         20, float, 'advanced', _('Speed')).setRange(0.1).setLabel(_("Bottom layer speed (mm/s)"), _("Print speed for the bottom layer, you want to print the first layer slower so it sticks better to the printer bed."))
 setting('infill_speed',              0.0, float, 'advanced', _('Speed')).setRange(0.0).setLabel(_("Infill speed (mm/s)"), _("Speed at which infill parts are printed. If set to 0 then the print speed is used for the infill. Printing the infill faster can greatly reduce printing, but this can negatively effect print quality.."))
 setting('cool_min_layer_time',         5, float, 'advanced', _('Cool')).setRange(0).setLabel(_("Minimal layer time (sec)"), _("Minimum time spend in a layer, gives the layer time to cool down before the next layer is put on top. If the layer will be placed down too fast the printer will slow down to make sure it has spend at least this amount of seconds printing this layer."))
 setting('fan_enabled',              True, bool,  'advanced', _('Cool')).setLabel(_("Enable cooling fan"), _("Enable the cooling fan during the print. The extra cooling from the cooling fan is essential during faster prints."))
 
-setting('skirt_line_count',            1, int,   'expert', 'Skirt').setRange(0).setLabel(_("Line count"), _("The skirt is a line drawn around the object at the first layer. This helps to prime your extruder, and to see if the object fits on your platform.\nSetting this to 0 will disable the skirt. Multiple skirt lines can help priming your extruder better for small objects."))
+setting('skirt_line_count',            0, int,   'expert', 'Skirt').setRange(0).setLabel(_("Line count"), _("The skirt is a line drawn around the object at the first layer. This helps to prime your extruder, and to see if the object fits on your platform.\nSetting this to 0 will disable the skirt. Multiple skirt lines can help priming your extruder better for small objects."))
 setting('skirt_gap',                 3.0, float, 'expert', 'Skirt').setRange(0).setLabel(_("Start distance (mm)"), _("The distance between the skirt and the first layer.\nThis is the minimal distance, multiple skirt lines will be put outwards from this distance."))
 setting('skirt_minimal_length',    150.0, float, 'expert', 'Skirt').setRange(0).setLabel(_("Minimal length (mm)"), _("The minimal length of the skirt, if this minimal length is not reached it will add more skirt lines to reach this minimal lenght.\nNote: If the line count is set to 0 this is ignored."))
 #setting('max_z_speed',               3.0, float, 'expert',   _('Speed')).setRange(0.1).setLabel(_("Max Z speed (mm/s)"), _("Speed at which Z moves are done. When you Z axis is properly lubricated you can increase this for less Z blob."))
@@ -205,7 +208,7 @@ setting('fill_overlap', 15, int, 'expert', _('Infill')).setRange(0,100).setLabel
 setting('support_fill_rate', 15, int, 'expert', _('Support')).setRange(0,100).setLabel(_("Fill amount (%)"), _("Amount of infill structure in the support material, less material gives weaker support which is easier to remove. 15% seems to be a good average."))
 setting('support_xy_distance', 0.7, float, 'expert', _('Support')).setRange(0,10).setLabel(_("Distance X/Y (mm)"), _("Distance of the support material from the print, in the X/Y directions.\n0.7mm gives a nice distance from the print so the support does not stick to the print."))
 setting('support_z_distance', 0.15, float, 'expert', _('Support')).setRange(0,10).setLabel(_("Distance Z (mm)"), _("Distance from the top/bottom of the support to the print. A small gap here makes it easier to remove the support but makes the print a bit uglier.\n0.15mm gives a good seperation of the support material."))
-setting('spiralize', True, bool, 'expert', 'Spiralize').setLabel(_("Spiralize the outer contour"), _("Spiralize is smoothing out the Z move of the outer edge. This will create a steady Z increase over the whole print. This feature turns a solid object into a single walled print with a solid bottom."))
+setting('spiralize', False, bool, 'expert', 'Spiralize').setLabel(_("Spiralize the outer contour"), _("Spiralize is smoothing out the Z move of the outer edge. This will create a steady Z increase over the whole print. This feature turns a solid object into a single walled print with a solid bottom."))
 #setting('bridge_speed', 100, int, 'expert', 'Bridge').setRange(0,100).setLabel(_("Bridge speed (%)"), _("Speed at which layers with bridges are printed, compared to normal printing speed."))
 setting('brim_line_count', 20, int, 'expert', _('Brim')).setRange(1,100).setLabel(_("Brim line amount"), _("The amount of lines used for a brim, more lines means a larger brim which sticks better, but this also makes your effective print area smaller."))
 setting('raft_margin', 5, float, 'expert', _('Raft')).setRange(0).setLabel(_("Extra margin (mm)"), _("If the raft is enabled, this is the extra raft area around the object which is also rafted. Increasing this margin will create a stronger raft while using more material and leaving less are for your print."))
@@ -223,43 +226,43 @@ setting('fix_horrible_extensive_stitching', False, bool, 'expert', _('Fix horrib
 setting('plugin_config', '', str, 'hidden', 'hidden')
 setting('object_center_x', -1, float, 'hidden', 'hidden')
 setting('object_center_y', -1, float, 'hidden', 'hidden')
-
-setting('start.gcode', """;Sliced at: {day} {date} {time}
-;Basic settings: Layer height: {layer_height} Walls: {wall_thickness} Fill: {fill_density}
-;Print time: {print_time}
-;Filament used: {filament_amount}m {filament_weight}g
-;Filament cost: {filament_cost}
-G92 E0                  ;zero the extruded length
-G1 E0 F200             ;extrude 3mm of feed stock
-G92 E0                  ;zero the extruded length again
-G21        ;metric values
-G90        ;absolute positioning
-M107       ;start with the fan off
-G28 X0 Y0  ;move X/Y to min endstops
-G28 Z0     ;move Z to min endstops
-G1 Z0.0 F{travel_speed} ;move the platform down 15mm
-G92 E0                  ;zero the extruded length
-G1 F1000 E5;;;;;;
-G92 E0
-G1 X30 Y0 F1000 E15              ;extrude 3mm of feed stock
-G92 E0                  ;zero the extruded length again
-;G1 Z1 F{travel_speed}
-;G1 E10 F{travel_speed}
-G92 E0
-M117 Printing...
+##-- Cambio de start.gcode y end.gcode --
+setting('start.gcode', """
+	;Basic settings: Layer height: {layer_height} Walls: {wall_thickness} Fill: {fill_density}
+	;Print time: {print_time}
+	;Filament used: {filament_amount}m {filament_weight}g
+	;Filament cost: {filament_cost}
+	G92 E0                  ;zero the extruded length
+	G1 E0 F200             ;extrude 3mm of feed stock
+	G92 E0                  ;zero the extruded length again
+	G21        ;metric values
+	G90        ;absolute positioning
+	M107       ;start with the fan off
+	G28 X0 Y0  ;move X/Y to min endstops
+	G28 Z0     ;move Z to min endstops
+	G1 Z0.0 F{travel_speed} ;move the platform down 15mm
+	G92 E0                  ;zero the extruded length
+	G1 F1000 E5;;;;;;
+	G92 E0
+	G1 X30 Y0 F1000 E15              ;extrude 3mm of feed stock
+	G92 E0                  ;zero the extruded length again
+	;G1 Z1 F{travel_speed}
+	;G1 E10 F{travel_speed}
+	G92 E0
+	M117 Printing...
 """, str, 'alteration', 'alteration')
 #######################################################################################
-setting('end.gcode', """;End GCode
-;End GCode
-M104 S0                     ;extruder heater off
-M140 S0                     ;heated bed heater off (if you have it)
-G91                                    ;relative positioning
-G1 E-10 F300                            ;retract the filament a bit before lifting the nozzle, to release some of the pressure
-G1 Z+0.5 E-5 X-20 Y-20 F{travel_speed} ;move Z up a bit and retract filament even more
-G28 X0 Y0                              ;move X/Y to min endstops, so the head is out of the way
-G90                         ;absolute positioning
-G1 Y140
-M84                         ;steppers off
+setting('end.gcode', """
+	;End GCode
+	M104 S0                     ;extruder heater off
+	M140 S0                     ;heated bed heater off (if you have it)
+	G91                                    ;relative positioning
+	G1 E-10 F300                            ;retract the filament a bit before lifting the nozzle, to release some of the pressure
+	G1 Z+0.5 E-5 X-20 Y-20 F{travel_speed} ;move Z up a bit and retract filament even more
+	G28 X0 Y0                              ;move X/Y to min endstops, so the head is out of the way
+	G90                         ;absolute positioning
+	G1 Y140
+	M84                         ;steppers off
 """, str, 'alteration', 'alteration')
 #######################################################################################
 setting('start2.gcode', """;Sliced at: {day} {date} {time}
@@ -331,7 +334,7 @@ setting('save_profile', 'False', bool, 'preference', 'hidden').setLabel(_("Save 
 setting('filament_cost_kg', '0', float, 'preference', 'hidden').setLabel(_("Cost (price/kg)"), _("Cost of your filament per kg, to estimate the cost of the final print."))
 setting('filament_cost_meter', '0', float, 'preference', 'hidden').setLabel(_("Cost (price/m)"), _("Cost of your filament per meter, to estimate the cost of the final print."))
 setting('auto_detect_sd', 'True', bool, 'preference', 'hidden').setLabel(_("Auto detect SD card drive"), _("Auto detect the SD card. You can disable this because on some systems external hard-drives or USB sticks are detected as SD card."))
-setting('check_for_updates', 'True', bool, 'preference', 'hidden').setLabel(_("Check for updates"), _("Check for newer versions of Cura on startup"))
+setting('check_for_updates', 'False', bool, 'preference', 'hidden').setLabel(_("Check for updates"), _("Check for newer versions of Cura on startup"))
 setting('submit_slice_information', 'False', bool, 'preference', 'hidden').setLabel(_("Send usage statistics"), _("Submit anonymous usage information to improve next versions of Cura"))
 setting('youmagine_token', '', str, 'preference', 'hidden')
 setting('filament_physical_density', '1240', float, 'preference', 'hidden').setRange(500.0, 3000.0).setLabel(_("Density (kg/m3)"), _("Weight of the filament per m3. Around 1240 for PLA. And around 1040 for ABS. This value is used to estimate the weight if the filament used for the print."))
@@ -404,6 +407,8 @@ settingsDictionary['filament_diameter3'].addCondition(lambda : int(getMachineSet
 settingsDictionary['filament_diameter4'].addCondition(lambda : int(getMachineSetting('extruder_amount')) > 3)
 settingsDictionary['support_dual_extrusion'].addCondition(lambda : int(getMachineSetting('extruder_amount')) > 1)
 settingsDictionary['retraction_dual_amount'].addCondition(lambda : int(getMachineSetting('extruder_amount')) > 1)
+settingsDictionary['wipe_tower'].addCondition(lambda : int(getMachineSetting('extruder_amount')) > 1)
+settingsDictionary['ooze_shield'].addCondition(lambda : int(getMachineSetting('extruder_amount')) > 1)
 #Heated bed
 settingsDictionary['print_bed_temperature'].addCondition(lambda : getMachineSetting('has_heated_bed') == 'True')
 
@@ -518,7 +523,7 @@ def resetProfile():
 		putProfileSetting('nozzle_size', '0.4')
 		if getMachineSetting('ultimaker_extruder_upgrade') == 'True':
 			putProfileSetting('retraction_enable', 'True')
-	elif getMachineSetting('machine_type') == 'ultimaker2':
+	elif getMachineSetting('machine_type') == 'Sawers3D':
 		putProfileSetting('nozzle_size', '0.4')
 		putProfileSetting('retraction_enable', 'True')
 	else:
@@ -914,6 +919,20 @@ def replaceGCodeTags(filename, gcodeInt):
 	f.write(data)
 	f.close()
 
+def replaceGCodeTagsFromSlicer(filename, slicerInt):
+	f = open(filename, 'r+')
+	data = f.read(2048)
+	data = data.replace('#P_TIME#', slicerInt.getPrintTime())
+	data = data.replace('#F_AMNT#', slicerInt.getFilamentAmount())
+	data = data.replace('#F_WGHT#', ('%8.2f' % (float(slicerInt.getFilamentWeight()) * 1000))[-8:])
+	cost = slicerInt.getFilamentCost()
+	if cost is None:
+		cost = 'Unknown'
+	data = data.replace('#F_COST#', ('%8s' % (cost.split(' ')[0]))[-8:])
+	f.seek(0)
+	f.write(data)
+	f.close()
+
 ### Get aleration raw contents. (Used internally in Cura)
 def getAlterationFile(filename):
 	if filename in tempOverride:
@@ -942,6 +961,8 @@ def getAlterationFileContents(filename, extruderCount = 1):
 	postfix = ''
 	alterationContents = getAlterationFile(filename)
 	if getMachineSetting('gcode_flavor') == 'UltiGCode':
+		if filename == 'end.gcode':
+			return 'M25 ;Stop reading from this point on.\n'
 		return ''
 	if filename == 'start.gcode':
 		if extruderCount > 1:
@@ -956,7 +977,7 @@ def getAlterationFileContents(filename, extruderCount = 1):
 		if getMachineSetting('has_heated_bed') == 'True':
 			bedTemp = getProfileSettingFloat('print_bed_temperature')
 
-		if bedTemp > 0 and isTagIn('{print_bed_temperature}', alterationContents):
+		if bedTemp > 0 and not isTagIn('{print_bed_temperature}', alterationContents):
 			prefix += 'M140 S%f\n' % (bedTemp)
 		if temp > 0 and not isTagIn('{print_temperature}', alterationContents):
 			if extruderCount > 0:

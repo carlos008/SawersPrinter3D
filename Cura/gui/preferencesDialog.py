@@ -54,7 +54,7 @@ class preferencesDialog(wx.Dialog):
 		self.Fit()
 
 	def OnClose(self, e):
-		self.parent.reloadSettingPanels()
+		#self.parent.reloadSettingPanels()
 		self.Destroy()
 
 class machineSettingsDialog(wx.Dialog):

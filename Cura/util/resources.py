@@ -70,12 +70,12 @@ def setupLocalization(selectedLanguage = None):
 
 def getLanguageOptions():
 	return [
-		#[None, 'System default'],
+		# [None, 'System default'],
 		[None, 'English'],
-		#['en', 'English'],
+		['en', 'Spanish'],
 		# ['de', 'Deutsch'],
 		# ['fr', 'French'],
 		# ['nl', 'Nederlands'],
-		['en', 'Spanish'],
+		# ['sp', 'Spanish'],
 		# ['po', 'Polish']
 	]

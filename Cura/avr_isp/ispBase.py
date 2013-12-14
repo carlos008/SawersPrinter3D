@@ -24,7 +24,6 @@ class IspBase():
 		sig.append(self.sendISP([0x30, 0x00, 0x00, 0x00])[3])
 		sig.append(self.sendISP([0x30, 0x00, 0x01, 0x00])[3])
 		sig.append(self.sendISP([0x30, 0x00, 0x02, 0x00])[3])
-		print sig
 		return sig
 	
 	def chipErase(self):

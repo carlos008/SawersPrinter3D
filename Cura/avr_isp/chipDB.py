@@ -11,11 +11,6 @@ avrChipDB = {
 		'pageSize': 128,
 		'pageCount': 1024,
 	},
-	'ATMega644P': {
-		'signature': [0x1E, 0x97, 0x03],
-		'pageSize': 128,
-		'pageCount': 512,
-	},
 }
 
 def getChipFromDB(sig):

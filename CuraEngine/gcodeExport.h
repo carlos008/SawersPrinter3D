@@ -8,7 +8,6 @@
 #include "comb.h"
 #include "utils/intpoint.h"
 #include "utils/polygon.h"
-#include "timeEstimate.h"
 
 class GCodeExport
 {
@@ -30,9 +29,8 @@ private:
     int flavor;
     
     double totalFilament[MAX_EXTRUDERS];
-    double totalPrintTime;
-    TimeEstimateCalculator estimateCalculator;
 public:
+    double totalPrintTime;
     
     GCodeExport();
     
@@ -64,7 +62,6 @@ public:
     double getTotalFilamentUsed(int e);
 
     double getTotalPrintTime();
-    void updateTotalPrintTime();
     
     void addComment(const char* comment, ...);
 

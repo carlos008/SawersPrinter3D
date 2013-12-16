@@ -1,21 +1,7 @@
 #!/bin/bash
 
-# This script is to package the Cura package for Windows
-# This script should run under Windows with Cygwin.
-
-#############################
-# CONFIGURATION
-#############################
-
-##Select the build target
-#BUILD_TARGET=${1:-all}
 BUILD_TARGET=win32
-#BUILD_TARGET=linux
-#BUILD_TARGET=darwin
-#BUILD_TARGET=debian
 
-
-##Which version name are we appending to the final archive
 export BUILD_NAME=13.11
 
 #Cura-13.11-win32
@@ -23,11 +9,6 @@ TARGET_DIR=Cura-${BUILD_NAME}-${BUILD_TARGET}
 
 ##Which versions of external programs to use
 WIN_PORTABLE_PY_VERSION=2.7.2.1
-
-##Which CuraEngine to use
-if [ -z ${CURA_ENGINE_REPO} ] ; then
-	CURA_ENGINE_REPO="https://github.com/Ultimaker/CuraEngine"
-fi
 
 #############################
 # Funcion que verifica las herramientas
@@ -67,15 +48,13 @@ function extract
 # Change working directory to the directory the script is in
 # http://stackoverflow.com/a/246128
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-echo "\n".$SCRIPT_DIR."\n"
+
 cd $SCRIPT_DIR
 
 checkTool git "git: http://git-scm.com/"
 checkTool curl "curl: http://curl.haxx.se/"
 checkTool 7z "7zip: http://www.7-zip.org/"
 checkTool mingw32-make "mingw: http://www.mingw.org/"
-
-
 
 #############################
 # Download all needed files.
@@ -173,7 +152,7 @@ cp -r scripts/${BUILD_TARGET}/Printrun $TARGET_DIR/
 cp CuraEngine/CuraEngine.exe $TARGET_DIR
 
 # borra binarios compilados
-#mingw32-make -C CuraEngine clean
+mingw32-make -C CuraEngine clean
 
 rm -rf scripts/win32/dist
 mv `pwd`/${TARGET_DIR} scripts/win32/dist
@@ -188,12 +167,12 @@ if [ "$1" = "exe" ]; then
 		if [ -f '/c/Program Files (x86)/NSIS/makensis.exe' ]; then
 			#'/c/Program Files (x86)/NSIS/makensis.exe' -DVERSION=${BUILD_NAME} 'scripts/win32/installer.nsi' >> log.txt
 			'/c/Program Files (x86)/NSIS/makensis.exe' 'scripts/win32/installer.nsi' >> log.txt
-			mv scripts/win32/Cura_Sawers.exe ./
 			echo "Cura_Sawers.exe  generado"
 		fi
 	fi
+else
+	echo "SawwersPrinter3D compilado"
 fi
-
 
 #rm -rf Power
 #git clone https://github.com/GreatFruitOmsk/Power

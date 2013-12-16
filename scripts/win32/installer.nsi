@@ -1,20 +1,20 @@
 !ifndef VERSION
-  !define VERSION 'Sawers'
+  !define VERSION 'SawersPrinter3D'
 !endif
 !addplugindir "nsisPlugins"
 
 ; The name of the installer
-Name "Cura ${VERSION}"
+Name "${VERSION}"
 
 ; The file to write
-OutFile "Cura_${VERSION}.exe"
+OutFile "${VERSION}.exe"
 
 ; The default installation directory
-InstallDir $PROGRAMFILES\Cura_${VERSION}
+InstallDir $PROGRAMFILES\${VERSION}
 
 ; Registry key to check for directory (so if you install again, it will 
 ; overwrite the old one automatically)
-InstallDirRegKey HKLM "Software\Cura_${VERSION}" "Install_Dir"
+InstallDirRegKey HKLM "Software\${VERSION}" "Install_Dir"
 
 ; Request application privileges for Windows Vista
 RequestExecutionLevel admin
@@ -46,7 +46,7 @@ SetCompressor /SOLID lzma
 
 ;Run Cura after installing
 !define MUI_FINISHPAGE_RUN
-!define MUI_FINISHPAGE_RUN_TEXT "Start Cura ${VERSION}"
+!define MUI_FINISHPAGE_RUN_TEXT "Start ${VERSION}"
 !define MUI_FINISHPAGE_RUN_FUNCTION "LaunchLink"
 
 ; Pages
@@ -70,7 +70,7 @@ ReserveFile "header.bmp"
 ;--------------------------------
 
 ; The stuff to install
-Section "Cura ${VERSION}"
+Section "${VERSION}"
 
   SectionIn RO
   
@@ -81,22 +81,22 @@ Section "Cura ${VERSION}"
   File /r "dist\"
   
   ; Write the installation path into the registry
-  WriteRegStr HKLM "SOFTWARE\Cura_${VERSION}" "Install_Dir" "$INSTDIR"
+  WriteRegStr HKLM "SOFTWARE\${VERSION}" "Install_Dir" "$INSTDIR"
   
   ; Write the uninstall keys for Windows
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Cura_${VERSION}" "DisplayName" "Cura ${VERSION}"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Cura_${VERSION}" "UninstallString" '"$INSTDIR\uninstall.exe"'
-  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Cura_${VERSION}" "NoModify" 1
-  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Cura_${VERSION}" "NoRepair" 1
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${VERSION}" "DisplayName" "${VERSION}"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${VERSION}" "UninstallString" '"$INSTDIR\uninstall.exe"'
+  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${VERSION}" "NoModify" 1
+  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${VERSION}" "NoRepair" 1
   WriteUninstaller "uninstall.exe"
 
   ; Write start menu entries for all users
   SetShellVarContext all
   
-  CreateDirectory "$SMPROGRAMS\Cura ${VERSION}"
-  CreateShortCut "$SMPROGRAMS\Cura ${VERSION}\Uninstall Cura ${VERSION}.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
-  CreateShortCut "$SMPROGRAMS\Cura ${VERSION}\Cura ${VERSION}.lnk" "$INSTDIR\python\pythonw.exe" '-m "Cura.cura"' "$INSTDIR\Cura\resources\cura.ico" 0
-  CreateShortCut "$SMPROGRAMS\Cura ${VERSION}\Consola ${VERSION}.lnk" "$INSTDIR\python\pythonw.exe" '-m "Printrun.pronterface"' "$INSTDIR\Printrun\P-face.ico" 0
+  CreateDirectory "$SMPROGRAMS\${VERSION}"
+  CreateShortCut "$SMPROGRAMS\${VERSION}\Uninstall ${VERSION}.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
+  CreateShortCut "$SMPROGRAMS\${VERSION}\${VERSION}.lnk" "$INSTDIR\python\pythonw.exe" '-m "Cura.cura"' "$INSTDIR\Cura\resources\cura.ico" 0
+  CreateShortCut "$SMPROGRAMS\${VERSION}\Consola ${VERSION}.lnk" "$INSTDIR\python\pythonw.exe" '-m "Printrun.pronterface"' "$INSTDIR\Printrun\P-face.ico" 0
 
 
   ; Give all users write permissions in the install directory, so they can read/write profile and preferences files.
@@ -107,7 +107,7 @@ SectionEnd
 Function LaunchLink
   ; Write start menu entries for all users
   SetShellVarContext all
-  ExecShell "" "$SMPROGRAMS\Cura ${VERSION}\Cura ${VERSION}.lnk"
+  ExecShell "" "$SMPROGRAMS\${VERSION}\${VERSION}.lnk"
 FunctionEnd
 
 Section "Install ftdi Drivers"
@@ -153,13 +153,13 @@ SectionEnd
 Section "Uninstall"
   
   ; Remove registry keys
-  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Cura_${VERSION}"
-  DeleteRegKey HKLM "SOFTWARE\Cura_${VERSION}"
+  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${VERSION}"
+  DeleteRegKey HKLM "SOFTWARE\${VERSION}"
 
   ; Write start menu entries for all users
   SetShellVarContext all
   ; Remove directories used
-  RMDir /r "$SMPROGRAMS\Cura ${VERSION}"
+  RMDir /r "$SMPROGRAMS\${VERSION}"
   RMDir /r "$INSTDIR"
 
 SectionEnd

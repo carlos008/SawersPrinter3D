@@ -25,7 +25,7 @@ from Cura.util import meshLoader
 
 class mainWindow(wx.Frame):
 	def __init__(self):
-		super(mainWindow, self).__init__(None, title='Cura - ' + version.getVersion())
+		super(mainWindow, self).__init__(None, title='SawersPrinter3D - ' + version.getVersion())
 
 		wx.EVT_CLOSE(self, self.OnClose)
 

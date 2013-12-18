@@ -3,7 +3,6 @@
 *.7z
 *.pyc
 *.zip
-*.exe
 .idea
 .DS_Store
 _bin
@@ -12,5 +11,4 @@ _obj
 *.o
 .*.swp
 *.gcode
-CuraEngine
 

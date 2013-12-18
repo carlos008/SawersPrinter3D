@@ -3,7 +3,6 @@
 *.7z
 *.pyc
 *.zip
-*.exe
 *.po~
 *.gcode
 darwin-Cura-*

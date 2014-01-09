@@ -304,7 +304,8 @@ class mainWindow(wx.Frame):
 			self.splitter.SetSashSize(4)
 		self.defaultFirmwareInstallMenuItem.Enable(firmwareInstall.getDefaultFirmware() is not None)
 		if profile.getMachineSetting('machine_type') == 'Sawers3D':
-			self.bedLevelWizardMenuItem.Enable(False)
+			##-- cambiando False por True para habilitar la calibracion de la cama --#
+			self.bedLevelWizardMenuItem.Enable(True)
 			self.headOffsetWizardMenuItem.Enable(False)
 		if int(profile.getMachineSetting('extruder_amount')) < 2:
 			self.headOffsetWizardMenuItem.Enable(False)

@@ -135,7 +135,7 @@ if [ $BUILD_TARGET = "win32" ]; then
 	rm -rf ${TARGET_DIR}/python/Lib/OpenGL/DLLS/gle*
 
     #Build the C++ engine
-	mingw32-make -C CuraEngine
+	#mingw32-make -C CuraEngine
 fi
 
 #add Cura
@@ -152,7 +152,7 @@ cp -r scripts/${BUILD_TARGET}/Printrun $TARGET_DIR/
 cp CuraEngine/CuraEngine.exe $TARGET_DIR
 
 # borra binarios compilados
-mingw32-make -C CuraEngine clean
+#mingw32-make -C CuraEngine clean
 
 rm -rf scripts/win32/dist
 mv `pwd`/${TARGET_DIR} scripts/win32/dist

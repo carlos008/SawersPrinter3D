@@ -228,7 +228,8 @@ class FirstInfoPage(InfoPage):
 		# self.AddText(_("* Configure Cura for your machine"))
 		# self.AddText(_("* Optionally upgrade your firmware"))
 		# self.AddText(_("* Optionally check if your machine is working safely"))
-		# self.AddText(_("* Optionally level your printer bed"))
+		##-- descomentado la linea de calibracion --#
+		self.AddText(_("* Optionally level your printer bed"))
 
 		#self.AddText('* Calibrate your machine')
 		#self.AddText('* Do your first print')
@@ -311,10 +312,13 @@ class MachineSelectPage(InfoPage):
 		self.Ultimaker2Radio = self.AddRadioButton("Sawers3D", style=wx.RB_GROUP)
 		self.Ultimaker2Radio.SetValue(True)
 		self.Ultimaker2Radio.Bind(wx.EVT_RADIOBUTTON, self.OnUltimaker2Select)
+
 		self.UltimakerRadio = self.AddRadioButton("Ultimaker Original")
 		self.UltimakerRadio.Bind(wx.EVT_RADIOBUTTON, self.OnUltimakerSelect)
+		
 		self.OtherRadio = self.AddRadioButton(_("Other (Ex: RepRap, MakerBot)"))
 		self.OtherRadio.Bind(wx.EVT_RADIOBUTTON, self.OnOtherSelect)
+		
 		self.AddSeperator()
 		self.AddText(_("The collection of anonymous usage information helps with the continued improvement of Cura."))
 		self.AddText(_("This does NOT submit your models online nor gathers any privacy related information."))
@@ -529,7 +533,7 @@ class UltimakerCheckupPage(InfoPage):
 			return
 		if self.checkupState == 0:
 			self.tempCheckTimeout = 20
-			if temp[self.checkExtruderNr] > 70:
+			if temp[self.checkExtruderNr] > 100:
 				self.checkupState = 1
 				wx.CallAfter(self.infoBox.SetInfo, _("Cooldown before temperature check."))
 				self.comm.sendCommand("M104 S0 T%d" % (self.checkExtruderNr))
@@ -573,7 +577,8 @@ class UltimakerCheckupPage(InfoPage):
 					self.comm.sendCommand('M104 S0 T%d' % (self.checkExtruderNr))
 		elif self.checkupState >= 3 and self.checkupState < 10:
 			self.comm.sendCommand('M119')
-		wx.CallAfter(self.temperatureLabel.SetLabel, _("Head temperature: %d") % (temp[self.checkExtruderNr]))
+		#-- Deshabilitando la temperatura de la cama al momento de iniciar cheque --#
+		#wx.CallAfter(self.temperatureLabel.SetLabel, _("Head temperature: %d") % (temp[self.checkExtruderNr]))
 
 	def mcStateChange(self, state):
 		if self.comm is None:
@@ -819,6 +824,7 @@ class Ultimaker2ReadyPage(InfoPage):
 		self.AddText('Cura is now ready to be used with your Sawers3D.')
 		self.AddSeperator()
 
+
 class configWizard(wx.wizard.Wizard):
 	def __init__(self, addNew = False):
 		super(configWizard, self).__init__(None, -1, "Configuration Wizard")
@@ -839,15 +845,19 @@ class configWizard(wx.wizard.Wizard):
 		self.customRepRapInfoPage = CustomRepRapInfoPage(self)
 		self.otherMachineInfoPage = OtherMachineInfoPage(self)
 
-		self.ultimaker2ReadyPage = Ultimaker2ReadyPage(self)
+		##-- Comentado para continuar con las vistas de calibracion --#
+		#self.ultimaker2ReadyPage = Ultimaker2ReadyPage(self)
 
+		##-- cambiando la secuencia de pantallas para calibrar la impresora --#
 		wx.wizard.WizardPageSimple.Chain(self.firstInfoPage, self.machineSelectPage)
 		#wx.wizard.WizardPageSimple.Chain(self.machineSelectPage, self.ultimaker2ReadyPage)
-		wx.wizard.WizardPageSimple.Chain(self.machineSelectPage, self.ultimakerSelectParts)
-		wx.wizard.WizardPageSimple.Chain(self.ultimakerSelectParts, self.ultimakerFirmwareUpgradePage)
-		wx.wizard.WizardPageSimple.Chain(self.ultimakerFirmwareUpgradePage, self.ultimakerCheckupPage)
-		wx.wizard.WizardPageSimple.Chain(self.ultimakerCheckupPage, self.bedLevelPage)
-		#wx.wizard.WizardPageSimple.Chain(self.ultimakerCalibrationPage, self.ultimakerCalibrateStepsPerEPage)
+		#wx.wizard.WizardPageSimple.Chain(self.machineSelectPage, self.ultimakerSelectParts)
+		#wx.wizard.WizardPageSimple.Chain(self.ultimakerSelectParts, self.ultimakerFirmwareUpgradePage)
+		#wx.wizard.WizardPageSimple.Chain(self.ultimakerFirmwareUpgradePage, self.ultimakerCheckupPage)
+		#wx.wizard.WizardPageSimple.Chain(self.machineSelectPage, self.ultimakerCheckupPage)
+		wx.wizard.WizardPageSimple.Chain(self.machineSelectPage, self.bedLevelPage)
+		#wx.wizard.WizardPageSimple.Chain(self.ultimakerCheckupPage, self.bedLevelPage)
+		wx.wizard.WizardPageSimple.Chain(self.ultimakerCalibrationPage, self.ultimakerCalibrateStepsPerEPage)
 		wx.wizard.WizardPageSimple.Chain(self.otherMachineSelectPage, self.customRepRapInfoPage)
 
 		self.FitToPage(self.firstInfoPage)

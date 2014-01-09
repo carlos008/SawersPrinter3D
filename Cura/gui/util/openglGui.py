@@ -251,7 +251,7 @@ class glGuiPanel(glcanvas.GLCanvas):
 	def _drawGui(self):
 		if self._glButtonsTexture is None:
 			self._glButtonsTexture = opengl.loadGLTexture('glButtons.png')
-			self._glRobotTexture = opengl.loadGLTexture('UltimakerRobot.png')
+			self._glRobotTexture = opengl.loadGLTexture('Sawers3Dfoot.png')
 
 		glDisable(GL_DEPTH_TEST)
 		glEnable(GL_BLEND)
@@ -268,7 +268,7 @@ class glGuiPanel(glcanvas.GLCanvas):
 
 		self._container.draw()
 
-		# glBindTexture(GL_TEXTURE_2D, self._glRobotTexture)
+		glBindTexture(GL_TEXTURE_2D, self._glRobotTexture)
 		# glEnable(GL_TEXTURE_2D)
 		# glPushMatrix()
 		# glColor4f(1,1,1,1)
